@@ -1,6 +1,6 @@
-# The Light of Other Jobs
+# Echoes of the Unknown
 
-This repository contains one python script along with instructions on how to deploy the app with docker-compose, run POST GET AND DELETE ROUTES, and specialized routes. The primary script uses Flask and Redis, and can be accessed by 5 different routes. The objective of this homework was to get familiar with using Flask in conjunction with Redis to build a practical application with a new and more complicated data set. Orchestrating docker-compose is important because it simplifies things, while also serving as a foundation of future projects.
+Final project yay! Placeholder files from HW8 for now.
 
 ### Important Files:
 
