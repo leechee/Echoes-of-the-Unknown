@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  redis-db:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  flask-app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - REDIS_HOST=redis-db
+    depends_on:
+      - redis-db
+
+  worker:
+    build: .
+    command: python src/worker.py
+    environment:
+      - REDIS_HOST=redis-db
+    depends_on:
+      - redis-db
+
+volumes:
+  redis_data:
