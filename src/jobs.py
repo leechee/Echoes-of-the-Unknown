@@ -12,12 +12,12 @@ jdb = redis.Redis(host=redis_ip, port=6379, db=2)
 def _generate_jid():
     return str(uuid.uuid4())
 
-def _instantiate_job(jid, status, min_hgnc_id, max_hgnc_id):
+def _instantiate_job(jid: str, status: str, start_date: str, end_date: str) -> dict:
     return {
         'id': jid,
         'status': status,
-        'min_hgnc_id': min_hgnc_id,
-        'max_hgnc_id': max_hgnc_id
+        'start_date': start_date,
+        'end_date': end_date
     }
 
 def _save_job(jid, job_dict):
@@ -28,9 +28,9 @@ def _queue_job(jid):
     q.put(jid)
     return
 
-def add_job(min_hgnc_id, max_hgnc_id, status="submitted"):
+def add_job(start_date: str, end_date: str, status: str = "submitted") -> dict:
     jid = _generate_jid()
-    job_dict = _instantiate_job(jid, status, min_hgnc_id, max_hgnc_id)
+    job_dict = _instantiate_job(jid, status, start_date, end_date)
     _save_job(jid, job_dict)
     _queue_job(jid)
     return job_dict
