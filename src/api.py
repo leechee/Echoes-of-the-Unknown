@@ -1,64 +1,75 @@
 from flask import Flask, request, jsonify
-import redis
 import json
+import logging
+import os
+import pandas as pd
 from jobs import add_job, get_job_by_id, jdb
+import redis
 
 app = Flask(__name__)
-rd = redis.Redis(host='redis-db', port=6379, db=0)
+rd = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-db'), port=6379, db=0)  # raw UFO data
+rdb = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-db'), port=6379, db=3)  # job results
+
+
+log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=log_level)
+logger = logging.getLogger(__name__)
 
 @app.route('/data', methods=['POST'])
 def post_data():
-    import requests
-    url = "https://storage.googleapis.com/public-download-files/hgnc/json/json/hgnc_complete_set.json"
-    response = requests.get(url)
-    data = response.json()
-    genes = data.get('response', {}).get('docs', [])
-
-    rd.flushdb()
-    count = 0
-    for gene in genes:
-        hgnc_id = gene.get('hgnc_id')
-        if hgnc_id:
-            cleaned_gene = {k: (v if v is not None else "") for k, v in gene.items()}
-            rd.set(hgnc_id, json.dumps(cleaned_gene))
-            count += 1
-
-    return jsonify({'message': f'Successfully loaded {count} genes'})
+    try:
+        df = pd.read_csv(
+    "data/ufodata.csv",
+    encoding='ISO-8859-1',
+    delimiter=',',
+    on_bad_lines='skip',
+    engine='python'
+)
+        rd.flushdb()
+        for idx, row in df.iterrows():
+            sighting_id = str(idx)
+            rd.set(sighting_id, row.to_json())
+        logger.info(f"Loaded {len(df)} UFO sightings into Redis")
+        return jsonify({'message': f'Successfully loaded {len(df)} sightings'})
+    except Exception as e:
+        logger.error(f"Failed to load data: {e}")
+        return jsonify({'error': str(e)})
 
 @app.route('/data', methods=['GET'])
 def get_data():
-    genes = []
+    sightings = []
     for key in rd.scan_iter():
-        gene_data = json.loads(rd.get(key))
-        genes.append(gene_data)
-    return jsonify(genes)
+        sighting_data = json.loads(rd.get(key))
+        sightings.append(sighting_data)
+    return jsonify(sightings)
 
 @app.route('/data', methods=['DELETE'])
 def delete_data():
     rd.flushdb()
+    logger.warning("All UFO sighting data deleted from Redis")
     return jsonify({'message': 'All data deleted'})
 
-@app.route('/genes', methods=['GET'])
-def get_gene_ids():
-    gene_ids = [key.decode() for key in rd.keys()]
-    return jsonify(gene_ids)
+@app.route('/sightings', methods=['GET'])
+def get_sighting_ids():
+    sighting_ids = [key.decode() for key in rd.keys()]
+    return jsonify(sighting_ids)
 
-@app.route('/genes/<string:hgnc_id>', methods=['GET'])
-def get_gene(hgnc_id):
-    gene_json = rd.get(hgnc_id)
-    if not gene_json:
-        return jsonify({'error': 'Gene not found'})
-    return jsonify(json.loads(gene_json))
+@app.route('/sightings/<string:sighting_id>', methods=['GET'])
+def get_sighting(sighting_id):
+    sighting_json = rd.get(sighting_id)
+    if not sighting_json:
+        return jsonify({'error': 'Sighting not found'})
+    return jsonify(json.loads(sighting_json))
 
 @app.route('/jobs', methods=['POST'])
 def create_job():
     data = request.get_json()
-    min_hgnc_id = data.get('min_hgnc_id')
-    max_hgnc_id = data.get('max_hgnc_id')
-    if min_hgnc_id is None or max_hgnc_id is None:
-        return jsonify({'error': 'Missing required parameters: min_hgnc_id and max_hgnc_id'})
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+    if not start_date or not end_date:
+        return jsonify({'error': 'Missing required parameters: start_date and end_date'})
 
-    job = add_job(min_hgnc_id, max_hgnc_id)
+    job = add_job(start_date, end_date)
     return jsonify(job)
 
 @app.route('/jobs', methods=['GET'])
@@ -71,6 +82,18 @@ def job_status(jobid):
     if job:
         return jsonify(job)
     return jsonify({'error': 'Job ID not found'})
+
+@app.route('/results/<jobid>', methods=['GET'])
+def get_result(jobid):
+    result = rdb.get(jobid)
+    if result:
+        return jsonify(json.loads(result))
+    job = get_job_by_id(jobid)
+    if job is None:
+        return jsonify({'error': 'Invalid job ID'})
+    if job['status'] != 'complete':
+        return jsonify({'message': 'Job is still processing'})
+    return jsonify({'error': 'No result found'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
