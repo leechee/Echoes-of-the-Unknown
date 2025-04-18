@@ -4,7 +4,7 @@ import redis
 from hotqueue import HotQueue
 import os
 
-redis_ip = os.environ.get('REDIS_HOST', 'redis-db')
+redis_ip = os.environ.get('REDIS_HOST', 'redis-test')
 rd = redis.Redis(host=redis_ip, port=6379, db=0)
 q = HotQueue("queue", host=redis_ip, port=6379, db=1)
 jdb = redis.Redis(host=redis_ip, port=6379, db=2)

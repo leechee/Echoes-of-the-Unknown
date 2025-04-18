@@ -9,7 +9,7 @@ import base64
 import io
 from datetime import datetime
 
-redis_ip = os.environ.get('REDIS_HOST', 'redis-db')
+redis_ip = os.environ.get('REDIS_HOST', 'redis-test')
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)

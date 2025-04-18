@@ -7,13 +7,29 @@ from jobs import add_job, get_job_by_id, jdb
 import redis
 
 app = Flask(__name__)
-rd = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-db'), port=6379, db=0)  # raw UFO data
-rdb = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-db'), port=6379, db=3)  # job results
+rd = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-test'), port=6379, db=0)  # raw UFO data
+rdb = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-test'), port=6379, db=3)  # job results
 
 
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
+
+@app.route('/help', methods=['GET'])
+def help():
+    return {
+        "/help": "List all available routes",
+        "/data [POST]": "Load UFO sightings data into Redis",
+        "/data [GET]": "Return all UFO sightings",
+        "/data [DELETE]": "Delete all UFO sightings",
+        "/sightings [GET]": "List all sighting IDs",
+        "/sightings/<sighting_id> [GET]": "Get a specific sighting by ID",
+        "/jobs [POST]": "Submit a job to analyze data within a date range",
+        "/jobs [GET]": "List all job IDs",
+        "/jobs/<jobid> [GET]": "Get job status",
+        "/results/<jobid> [GET]": "Get analysis result (if ready)"
+    }
+
 
 @app.route('/data', methods=['POST'])
 def post_data():
