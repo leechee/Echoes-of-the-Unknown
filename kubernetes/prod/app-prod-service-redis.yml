@@ -1,0 +1,12 @@
+### app-prod-service-redis.yml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-prod
+spec:
+  selector:
+    app: redis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379

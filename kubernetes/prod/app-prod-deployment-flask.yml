@@ -1,0 +1,24 @@
+### app-prod-deployment-flask.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-api-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-api
+  template:
+    metadata:
+      labels:
+        app: flask-api
+    spec:
+      containers:
+        - name: flask-api
+          image: leechee1/flask-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: REDIS_HOST
+              value: "redis-prod"
