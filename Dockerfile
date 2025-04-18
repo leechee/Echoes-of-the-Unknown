@@ -8,4 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ src/
 COPY data/ data/
 
-CMD ["python", "src/api.py"]
+ARG ENTRYPOINT=src/api.py
+ENV ENTRYPOINT=${ENTRYPOINT}
+CMD ["sh", "-c", "python $ENTRYPOINT"]
