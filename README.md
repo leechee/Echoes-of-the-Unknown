@@ -2,6 +2,8 @@
 
 Final project yay! Placeholder files from HW8 for now.
 
+TO DO: Update README, finish code user graphing function, then writeup, video, submit
+
 ### Important Files:
 
 The primary Python script is [api.py](api.py), which ingests the HGNC data using the requests library in a dictionary format. The user can use Flask routes to run the functions from the command line, pulling data from a Redis database.
