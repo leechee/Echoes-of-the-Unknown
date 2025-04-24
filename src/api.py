@@ -1,19 +1,27 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import json
 import logging
 import os
 import pandas as pd
-from jobs import add_job, get_job_by_id, jdb
 import redis
+import base64
+from io import BytesIO
 
+from jobs import add_job, get_job_by_id, jdb
+
+# Flask setup
 app = Flask(__name__)
-rd = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-test'), port=6379, db=0)  # raw UFO data
-rdb = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-test'), port=6379, db=3)  # job results
 
+# Redis databases
+rd = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-test'), port=6379, db=0)  # Raw UFO data
+rdb = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-test'), port=6379, db=3)  # Job results
 
+# Logging setup
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
+
+# Routes
 
 @app.route('/help', methods=['GET'])
 def help():
@@ -30,17 +38,16 @@ def help():
         "/results/<jobid> [GET]": "Get analysis result (if ready)"
     }
 
-
 @app.route('/data', methods=['POST'])
 def post_data():
     try:
         df = pd.read_csv(
-    "data/ufodata.csv",
-    encoding='ISO-8859-1',
-    delimiter=',',
-    on_bad_lines='skip',
-    engine='python'
-)
+            "data/ufodata.csv",
+            encoding='ISO-8859-1',
+            delimiter=',',
+            on_bad_lines='skip',
+            engine='python'
+        )
         rd.flushdb()
         for idx, row in df.iterrows():
             sighting_id = str(idx)
@@ -103,7 +110,15 @@ def job_status(jobid):
 def get_result(jobid):
     result = rdb.get(jobid)
     if result:
-        return jsonify(json.loads(result))
+        result_data = json.loads(result)
+        if request.args.get('format') == 'image':
+            if 'image_base64' in result_data:
+                image_data = base64.b64decode(result_data['image_base64'])
+                return send_file(BytesIO(image_data), mimetype='image/png')
+            else:
+                return jsonify({'error': 'No image data available for this job'})
+        return jsonify(result_data)
+
     job = get_job_by_id(jobid)
     if job is None:
         return jsonify({'error': 'Invalid job ID'})
@@ -111,5 +126,6 @@ def get_result(jobid):
         return jsonify({'message': 'Job is still processing'})
     return jsonify({'error': 'No result found'})
 
+# Main entry
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
