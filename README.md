@@ -203,7 +203,7 @@ You can visit the following endpoints directly in any web browser:
   http://jasonlee.coe332.tacc.cloud/results/<jobid>?format=image
   ```
 
-#### POST and DELETE Routes (use curl or Postman)
+#### POST and DELETE Routes (use curl)
 
 To load the data:
 ```
