@@ -1,29 +1,31 @@
+
 # Echoes of the Unknown
-
-Final project yay! Placeholder files from HW8 for now.
-
-TO DO: Update README, finish code user graphing function, then writeup, video, submit
 
 ### Important Files:
 
-The primary Python script is [api.py](api.py), which ingests the HGNC data using the requests library in a dictionary format. The user can use Flask routes to run the functions from the command line, pulling data from a Redis database.
+The primary Python script is [api.py](api.py), which ingests the UFO sightings data using pandas and loads it into a Redis database. The user can use Flask routes to run the functions from the command line or through a browser, accessing the data and triggering analysis.
 
-[docker-compose.yml](docker-compose.yml) is an important file that orchestrates Flask, Redis, and the environment which runs the testing script.
+[docker-compose.yml](docker-compose.yml) is an important file that orchestrates Flask, Redis, and the worker environment which runs the async analysis script.
 
-[Dockerfile](Dockerfile) and [requirements.txt](requirements.txt) work in conjunction to load a proper environment which the user can run the scripts. Dockerfile defines the container setup, while requirements.txt lists the necessary Python dependencies.
+[Dockerfile](Dockerfile) and [requirements.txt](requirements.txt) work in conjunction to load a proper environment in which the user can run the scripts. Dockerfile defines the container setup, while requirements.txt lists the necessary Python dependencies.
 
-The [jobs.py](jobs.py) script manages the queuing system and allows for jobs to be submitted and tracked.
+The [jobs.py](jobs.py) script manages the queuing system and allows for jobs to be submitted, tracked, and managed via Redis.
 
-[worker.py](worker.py) is the background service which listens for jobs and updates their status accordingly.
+[worker.py](worker.py) is the background service which listens for jobs and generates state-wise bar plots of UFO sightings over a given date range.
 
 ## Data Input
-You can find the HGNC data on this page: https://www.genenames.org/download/archive/
+The UFO Sightings dataset is sourced from the [National UFO Reporting Center (NUFORC)](https://nuforc.org) and compiled by Sigmond Axel. 
+It is hosted on [Kaggle](https://www.kaggle.com/datasets/NUFORC/ufo-sightings/data) and contains over 80,000 records of reported UFO sightings spanning the last century.
 
-Scroll to the bottom and look for the link that says "Current tab separated hgnc_complete_set file" or "Current JSON format hgnc_complete_set file". 
+Each row includes:
+- The datetime of the sighting
+- The city, state, and country
+- The shape of the UFO
+- Duration in seconds and textual format
+- Latitude and longitude
+- Comments provided by witnesses
 
-The data can be downloaded in two different formats. Additionally, the requests library can be used to derive the data as well. In this homework I chose to go with the json format.
-
-The HGNC dataset provides comprehensive information about human genes, including standardized nomenclature, genomic coordinates, gene families, and cross-references to other databases. This authoritative resource is maintained by the HUGO Gene Nomenclature Committee (HGNC) at the European Bioinformatics Institute.
+We store the CSV as `data/ufodata.csv`, and load it using the `/data` route.
 
 ## Getting Started 
 ### Deploying the App with Docker Compose
@@ -32,108 +34,85 @@ docker-compose up
 ```
 This command utilizes docker-compose.yml to deploy Flask, Redis, and the worker container.
 
+---
+
 ### Run Curl Commands and Interpretation
 
 #### How to run POST /data
 ```
 curl -X POST http://localhost:5000/data
 ```
-This route loads the HGNC data into redis
+Loads the UFO sightings data into Redis from `data/ufodata.csv`.
 
+Example output:
 ```
-"message": "Successfully loaded 44067 genes"
+"message": "Successfully loaded 80000 sightings"
 ```
-This message that pops up indicates that the data was successfully loaded.
 
 #### How to run GET /data
 ```
 curl -X GET http://localhost:5000/data
 ```
-This route returns all of the data from redis, an example output will be listed below in the specific gene route.
+Returns all the data stored in Redis.
 
 #### How to run DELETE /data
 ```
 curl -X DELETE http://localhost:5000/data
 ```
-This route deletes all of the data from redis.
+Deletes all the data from Redis.
 ```
 "message": "All data deleted"
 ```
-When the above message appears, it means the data has successfully been removed.
 
-#### How to run route /genes
+#### How to run GET /sightings
 ```
-curl http://localhost:5000/genes
+curl http://localhost:5000/sightings
 ```
-This returns the json-formatted list of all hgnc_ids. Below is an example part of the output:
+Returns all sighting IDs currently stored in Redis.
+
+Example output:
 ```
-  "HGNC:53258",
-  "HGNC:55463",
-  "HGNC:47091",
-  "HGNC:16534",
-  "HGNC:34333",
-  "HGNC:27740",
-  "HGNC:55099",
-  "HGNC:5107",
-  "HGNC:20892",
+["0", "1", "2", ..., "79999"]
 ```
 
-#### How to run route /genes/'hgnc_id'
+#### How to run GET /sightings/<sighting_id>
 ```
-curl http://localhost:5000/genes/'hgnc_id'
+curl http://localhost:5000/sightings/123
 ```
-This returns all the data associated with the specific hgnc_id entree. If the user inputs an invalid id, it will return an error warning. Below is an example output of a specific hgnc id. Keep in mind the data is sparse, meaning that the values with N/A are not listed and cleaned out.
+Returns the data associated with that specific sighting ID.
+
+Example output:
 ```
 {
-  "agr": "HGNC:5",
-  "ccds_id": ["CCDS12976"],
-  "date_approved_reserved": "1989-06-30",
-  "date_modified": "2023-01-20",
-  "ensembl_gene_id": "ENSG00000121410",
-  "entrez_id": "1",
-  "gene_group": ["Immunoglobulin like domain containing"],
-  "gene_group_id": [594],
-  "hgnc_id": "HGNC:5",
-  "location": "19q13.43",
-  "location_sortable": "19q13.43",
-  "locus_group": "protein-coding gene",
-  "locus_type": "gene with protein product",
-  "mane_select": ["ENST00000263100.8", "NM_130786.4"],
-  "merops": "I43.950",
-  "mgd_id": ["MGI:2152878"],
-  "name": "alpha-1-B glycoprotein",
-  "omim_id": ["138670"],
-  "pubmed_id": [2591067],
-  "refseq_accession": ["NM_130786"],
-  "rgd_id": ["RGD:69417"],
-  "status": "Approved",
-  "symbol": "A1BG",
-  "ucsc_id": "uc002qsd.5",
-  "uniprot_ids": ["P04217"],
-  "uuid": "fb61cb93-470c-4c3f-838a-83243c4cfe01",
-  "vega_id": "OTTHUMG00000183507"
+  "datetime": "1/1/2000 00:00",
+  "city": "phoenix",
+  "state": "az",
+  "country": "us",
+  "shape": "circle",
+  "duration (seconds)": "60",
+  ...
 }
 ```
 
 ---
 
-## New Job Routes
+### New Job Routes
 
-In the context of this project, a job is a request to analyze a subset of genes based on their HGNC IDs. Users must provide a JSON packet with two required fields: `min_hgnc_id` and `max_hgnc_id`, which should be numeric components of the HGNC identifiers (e.g., HGNC:100 to HGNC:5000).
-
-These parameters allow the worker to identify and later analyze all gene entries falling within that numeric ID range. If either `min_hgnc_id` or `max_hgnc_id` is missing from the request, the job will not be submitted, and the user will receive an error message explaining the problem.
+Jobs analyze sightings within a given date range.
 
 #### How to run POST /jobs
 ```
-curl localhost:5000/jobs -X POST -d '{"min_hgnc_id":100, "max_hgnc_id":5000}' -H "Content-Type: application/json"
+curl -X POST http://localhost:5000/jobs -H "Content-Type: application/json" -d '{"start_date":"2000-01-01", "end_date":"2005-12-31"}'
 ```
-This creates a new job, returning a JSON object with the job id, status, and parameters.
+This creates a new job to analyze UFO sightings between the given dates.
+
+Example output:
 ```
 {
-  "id": "c6f572de-c36f-4915-80e5-b844b05c54ab",
-  "max_hgnc_id": 5000,
-  "min_hgnc_id": 100,
-  "status": "submitted"
+  "id": "a12cdef3-45gh-678i-910j-klmn123opqrs",
+  "status": "submitted",
+  "start_date": "2000-01-01",
+  "end_date": "2005-12-31"
 }
 ```
 
@@ -141,35 +120,55 @@ This creates a new job, returning a JSON object with the job id, status, and par
 ```
 curl http://localhost:5000/jobs
 ```
-This returns a list of all job IDs (example output below):
-```
-[
-  "c6f572de-c36f-4915-80e5-b844b05c54ab",
-  "97be6782-eb7c-4e32-849f-d9c7414fdc86",
-  "7550cdbd-50d6-4ea4-929b-3e2d81e8d449"
-]
-```
+Returns a list of all job IDs.
 
 #### How to run GET /jobs/<jobid>
 ```
-curl http://localhost:5000/jobs/c4711fe8-5031-4cb4-b2d6-3e53641fcf4d
+curl http://localhost:5000/jobs/a12cdef3-45gh-678i-910j-klmn123opqrs
 ```
-This returns job info: status, parameters, and ID. If the job doesn’t exist, an error message is returned.
+Returns the job’s current status and metadata.
+
+---
+
+### How to Get Job Results
+
+#### How to run GET /results/<jobid>
+```
+curl http://localhost:5000/results/a12cdef3-45gh-678i-910j-klmn123opqrs
+```
+Returns a JSON object with the title and a base64-encoded graph image.
+
+To fetch the actual image as a PNG:
+```
+curl http://localhost:5000/results/a12cdef3-45gh-678i-910j-klmn123opqrs?format=image --output results.png
+```
+This saves the graph output locally as `results.png`.
+
+Example result object:
 ```
 {
-  "id": "c6f572de-c36f-4915-80e5-b844b05c54ab",
-  "max_hgnc_id": 5000,
-  "min_hgnc_id": 100,
-  "status": "complete"
+  "job_id": "a12cdef3-45gh-678i-910j-klmn123opqrs",
+  "title": "UFO Sightings from 2000-01-01 to 2005-12-31",
+  "image_base64": "<base64 string>"
 }
 ```
 
+Example output image:
+![results](results.png)
+
 ---
+
+### Prompting it Outside via Public URL
+Once deployed on Kubernetes with an Ingress and public IP:
+```
+curl http://<your_external_ip_or_url>/data -X POST
+```
+Replace `localhost` with your public endpoint to interact with the app externally.
 
 ### Clean Up!
 
 Run these command to close all containers:
 ```
-docker-compose down --remove-orphans # I found this complete reset to be useful
+docker-compose down --remove-orphans
 docker rm -f `docker ps -aq`
 ```
