@@ -1,4 +1,3 @@
-
 # Echoes of the Unknown
 
 Final project yay! Now using the UFO Sightings dataset.
@@ -235,3 +234,130 @@ curl http://jasonlee.coe332.tacc.cloud/results/<jobid> \
   | jq -r .image_base64 \
   | base64 -d > result.png
 ```
+
+
+
+
+---
+
+
+---
+
+## Kubernetes Deployment Instructions
+
+To deploy this application to a Kubernetes cluster (such as Jetstream), use the following steps.
+
+### Apply Deployment Files (Production)
+Assuming you're in the project root directory:
+```
+kubectl apply -f kubernetes/prod/
+```
+
+### Check that Pods Are Running
+```
+kubectl get pods
+```
+
+### View Logs for Flask or Worker
+```
+kubectl logs <flask-pod-name>
+kubectl logs <worker-pod-name>
+```
+
+### Port Forward (for local access)
+Useful if you're testing without Ingress:
+```
+kubectl port-forward svc/app-prod-service-flask 5000:5000
+```
+
+Then visit:
+```
+http://localhost:5000/help
+```
+
+### Check Services
+```
+kubectl get svc
+```
+
+### Check Ingress for Public IP/Domain
+```
+kubectl get ingress
+```
+
+You should see your external IP or domain like `jasonlee.coe332.tacc.cloud` listed here.
+
+---
+
+## Redis Persistence: Backup and Restore
+
+The use of `dump.rdb` as the Redis persistence file is part of the Jetstream development module, where test data is saved automatically during container runs.
+
+### Backing up the Redis Database
+Inside your Docker/Pod container, Redis stores data to a `dump.rdb` file. You can copy this file using:
+
+**For Docker:**
+```
+docker cp <redis-container-name>:/data/dump.rdb ./redis-backup.rdb
+```
+
+**For Kubernetes:**
+```
+kubectl cp <redis-pod-name>:/data/dump.rdb ./redis-backup.rdb
+```
+
+This file contains the entire state of your Redis database and can be stored as a backup.
+
+### Restoring the Redis Database
+To restore a backup:
+1. Stop the Redis container/pod.
+2. Replace the current `dump.rdb` file with your backup:
+   ```
+   docker cp ./redis-backup.rdb <redis-container-name>:/data/dump.rdb
+   ```
+3. Restart the container or pod.
+
+Redis will load the dump automatically on start.
+
+## Running Unit and Integration Tests
+
+This project includes test files compatible with `pytest` to ensure all core functionality works properly.
+
+### Test Files:
+
+- `test_api.py` — Tests API endpoints:
+  - `/sightings`
+  - `/sightings/<id>`
+  - `/jobs`
+
+- `test_jobs.py` — Tests the job creation system:
+  - Submitting a job with a start/end date
+  - Retrieving a job from Redis
+
+- `test_worker.py` — Tests Redis integration with the results database:
+  - Verifies connection to Redis DB 3 (where analysis results are stored)
+
+### How to Run the Tests
+
+If using Docker:
+```
+docker-compose up -d
+pytest test/
+```
+
+If testing in Kubernetes (after deploying test configs):
+```
+kubectl exec -it <flask-pod-name> -- pytest test/
+```
+
+---
+
+### Clean Up!
+
+To stop and remove all running containers and clean up orphaned Docker resources:
+```
+docker-compose down --remove-orphans
+docker rm -f `docker ps -aq`
+```
+
+This is helpful during development when you want to reset the environment or ensure no old containers are interfering with new changes.
