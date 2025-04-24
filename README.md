@@ -170,29 +170,68 @@ Example output image:
 
 
 ### Prompting it Outside via Public URL
-Once deployed on Kubernetes with an Ingress and public IP or domain, you can interact with the app using the following format.
 
-Example:
+Once deployed on Kubernetes and exposed via an Ingress, you can access the API at your public domain:
 ```
-curl http://jasonlee.coe332.tacc.cloud/data -X POST
+http://jasonlee.coe332.tacc.cloud
 ```
 
-Replace `/data` with any route you want to access. Here are more examples:
+#### Direct Access in a Web Browser (GET routes only)
+You can visit the following endpoints directly in any web browser:
+- View all sightings:
+  ```
+  http://jasonlee.coe332.tacc.cloud/sightings
+  ```
+- View a specific sighting:
+  ```
+  http://jasonlee.coe332.tacc.cloud/sightings/0
+  ```
+- List all jobs:
+  ```
+  http://jasonlee.coe332.tacc.cloud/jobs
+  ```
+- View job metadata:
+  ```
+  http://jasonlee.coe332.tacc.cloud/jobs/<jobid>
+  ```
+- View job result metadata:
+  ```
+  http://jasonlee.coe332.tacc.cloud/results/<jobid>
+  ```
+- View result graph image (renders directly in browser):
+  ```
+  http://jasonlee.coe332.tacc.cloud/results/<jobid>?format=image
+  ```
+
+#### POST and DELETE Routes (use curl or Postman)
+
+To load the data:
 ```
-curl http://jasonlee.coe332.tacc.cloud/sightings
-curl http://jasonlee.coe332.tacc.cloud/jobs
+curl -X POST http://jasonlee.coe332.tacc.cloud/data
+```
+
+To submit a job:
+```
+curl -X POST http://jasonlee.coe332.tacc.cloud/jobs \
+  -H "Content-Type: application/json" \
+  -d '{"start_date":"2000-01-01", "end_date":"2005-12-31"}'
+```
+
+To delete all data:
+```
+curl -X DELETE http://jasonlee.coe332.tacc.cloud/data
+```
+
+#### Save Image Result via Public URL
+
+If you want to save the result image from the public endpoint:
+```
 curl http://jasonlee.coe332.tacc.cloud/results/<jobid>?format=image --output result.png
 ```
 
+Or using `jq` and `base64` for full manual control:
 ```
-curl http://<your_external_ip_or_url>/data -X POST
-```
-Replace `localhost` with your public endpoint to interact with the app externally.
-
-### Clean Up!
-
-Run these command to close all containers:
-```
-docker-compose down --remove-orphans
-docker rm -f `docker ps -aq`
+curl http://jasonlee.coe332.tacc.cloud/results/<jobid> \
+  | jq -r .image_base64 \
+  | base64 -d > result.png
 ```
