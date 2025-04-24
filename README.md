@@ -1,6 +1,8 @@
 
 # Echoes of the Unknown
 
+Final project yay! Now using the UFO Sightings dataset.
+
 ### Important Files:
 
 The primary Python script is [api.py](api.py), which ingests the UFO sightings data using pandas and loads it into a Redis database. The user can use Flask routes to run the functions from the command line or through a browser, accessing the data and triggering analysis.
@@ -140,9 +142,17 @@ Returns a JSON object with the title and a base64-encoded graph image.
 
 To fetch the actual image as a PNG:
 ```
-curl http://localhost:5000/results/a12cdef3-45gh-678i-910j-klmn123opqrs?format=image --output results.png
+curl http://localhost:5000/results/a12cdef3-45gh-678i-910j-klmn123opqrs?format=image --output result.png
 ```
-This saves the graph output locally as `results.png`.
+This saves the graph output locally as `result.png`.
+
+Alternate method using `jq` and `base64` to decode and save the image:
+```
+curl http://<your_external_ip_or_url>/results/<jobid> \
+  | jq -r .image_base64 \
+  | base64 -d > result.png
+```
+
 
 Example result object:
 ```
@@ -154,12 +164,26 @@ Example result object:
 ```
 
 Example output image:
-![results](results.png)
+![results](result.png)
 
 ---
 
+
 ### Prompting it Outside via Public URL
-Once deployed on Kubernetes with an Ingress and public IP:
+Once deployed on Kubernetes with an Ingress and public IP or domain, you can interact with the app using the following format.
+
+Example:
+```
+curl http://jasonlee.coe332.tacc.cloud/data -X POST
+```
+
+Replace `/data` with any route you want to access. Here are more examples:
+```
+curl http://jasonlee.coe332.tacc.cloud/sightings
+curl http://jasonlee.coe332.tacc.cloud/jobs
+curl http://jasonlee.coe332.tacc.cloud/results/<jobid>?format=image --output result.png
+```
+
 ```
 curl http://<your_external_ip_or_url>/data -X POST
 ```
