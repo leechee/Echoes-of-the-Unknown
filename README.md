@@ -1,6 +1,6 @@
 # Echoes of the Unknown
 
-Final project yay! Now using the UFO Sightings dataset.
+This project explores reported UFO sightings using a publicly available dataset. It was developed as part of the final project for COE 332: Software Engineering and Design.
 
 ### Important Files:
 
@@ -15,16 +15,17 @@ The [jobs.py](jobs.py) script manages the queuing system and allows for jobs to 
 [worker.py](worker.py) is the background service which listens for jobs and generates state-wise bar plots of UFO sightings over a given date range.
 
 ## Data Input
-The UFO Sightings dataset is sourced from the [National UFO Reporting Center (NUFORC)](https://nuforc.org) and compiled by Sigmond Axel. 
-It is hosted on [Kaggle](https://www.kaggle.com/datasets/NUFORC/ufo-sightings/data) and contains over 80,000 records of reported UFO sightings spanning the last century.
+The dataset used is compiled by the National UFO Reporting Center (NUFORC) and was collected and published on Kaggle by Sigmond Axel. It contains over 80,000 reports spanning the past century.
 
-Each row includes:
-- The datetime of the sighting
-- The city, state, and country
-- The shape of the UFO
-- Duration in seconds and textual format
+Each record includes:
+- Date and time of the sighting
+- City, state, and country
+- Shape of the UFO
+- Duration in seconds and text format
 - Latitude and longitude
-- Comments provided by witnesses
+- Witness comments
+
+The dataset is stored in data/ufodata.csv and is loaded into the Redis database through the /data API endpoint.
 
 We store the CSV as `data/ufodata.csv`, and load it using the `/data` route.
 
