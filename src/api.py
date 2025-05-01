@@ -106,25 +106,31 @@ def job_status(jobid):
         return jsonify(job)
     return jsonify({'error': 'Job ID not found'})
 
+
 @app.route('/results/<jobid>', methods=['GET'])
 def get_result(jobid):
     result = rdb.get(jobid)
-    if result:
-        result_data = json.loads(result)
-        if request.args.get('format') == 'image':
-            if 'image_base64' in result_data:
-                image_data = base64.b64decode(result_data['image_base64'])
-                return send_file(BytesIO(image_data), mimetype='image/png')
-            else:
-                return jsonify({'error': 'No image data available for this job'})
-        return jsonify(result_data)
+    if result is None:
+        job = get_job_by_id(jobid)
+        if job is None:
+            return jsonify({'error': 'Invalid job ID'}), 404
+        if job['status'] != 'complete':
+            return jsonify({'message': 'Job is still processing'}), 202
+        return jsonify({'error': 'No result found'}), 404
 
-    job = get_job_by_id(jobid)
-    if job is None:
-        return jsonify({'error': 'Invalid job ID'})
-    if job['status'] != 'complete':
-        return jsonify({'message': 'Job is still processing'})
-    return jsonify({'error': 'No result found'})
+    result_data = json.loads(result)
+
+    # Return image if format=image
+    if request.args.get('format') == 'image':
+        try:
+            image_data = base64.b64decode(result_data['image_base64'])
+            return send_file(BytesIO(image_data), mimetype='image/png')
+        except Exception as e:
+            return jsonify({'error': f'Image decoding failed: {str(e)}'}), 500
+
+    # Otherwise return full JSON
+    return jsonify(result_data)
+
 
 # Main entry
 if __name__ == '__main__':
