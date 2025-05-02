@@ -1,4 +1,3 @@
-### app-prod-service-flask.yml
 apiVersion: v1
 kind: Service
 metadata:

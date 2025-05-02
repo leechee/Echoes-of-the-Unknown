@@ -1,11 +1,14 @@
-### app-prod-ingress-flask.yml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: flask-api-ingress-prod
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
+  ingressClassName: nginx
   rules:
-    - http:
+    - host: jasonlee.coe332.tacc.cloud
+      http:
         paths:
           - path: /
             pathType: Prefix
