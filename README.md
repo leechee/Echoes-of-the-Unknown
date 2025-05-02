@@ -241,6 +241,8 @@ docker cp ./redis-backup.rdb <redis-container>:/data/dump.rdb
 
 ## Running Tests
 
+Our test suite is composed of three main Python files that collectively verify the core functionality of the application. The test_api.py file uses live HTTP requests to ensure the REST API behaves as expected. It checks that the /sightings endpoint returns a list, that /sightings/'id' can retrieve individual sightings, and that /jobs correctly returns a list of job IDs. The test_jobs.py module directly tests backend functionality by calling add_job() to ensure it returns a well-structured job dictionary with the correct fields (id, start_date, end_date, and status). It also uses get_job_by_id() to confirm that jobs can be retrieved by their unique IDs. Finally, test_worker.py verifies Redis connectivity, specifically checking that the worker service can connect to the Redis results database (DB 3) and read keys from it. If Redis is not accessible, the test will fail with a clear error message. Together, these tests ensure the integrity of job management, API routing, and worker-Redis integration.
+
 ### Run with Docker:
 ```
 docker-compose up -d
