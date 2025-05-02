@@ -58,6 +58,31 @@ Use this to deploy the application into a Kubernetes cluster. See full instructi
 
 ### Run Curl Commands and Interpretation
 
+#### How to run GET /help
+```
+curl http://localhost:5000/help
+```
+
+This route returns a JSON object listing all available API endpoints and their functions.
+
+Example output:
+```
+{
+  "/help": "List all available routes",
+  "/data [POST]": "Load UFO sightings data into Redis",
+  "/data [GET]": "Return all UFO sightings",
+  "/data [DELETE]": "Delete all UFO sightings",
+  "/sightings [GET]": "List all sighting IDs",
+  "/sightings/<sighting_id> [GET]": "Get a specific sighting by ID",
+  "/jobs [POST]": "Submit a job to analyze data within a date range",
+  "/jobs [GET]": "List all job IDs",
+  "/jobs/<jobid> [GET]": "Get job status",
+  "/results/<jobid> [GET]": "Get analysis result (if ready)"
+}
+```
+Use this route as a built-in documentation tool. It helps both developers and testers quickly see what routes exist and how they behave — especially helpful when accessing the app remotely via Ingress.
+
+
 #### How to run POST /data
 ```
 curl -X POST http://localhost:5000/data
@@ -130,11 +155,13 @@ curl http://localhost:5000/results/<jobid>
 ```
 
 #### PNG Image:
+Running this command will transform the base64 decode into an image automatically downloaded into your folder for the user to view
 ```
 curl http://localhost:5000/results/<jobid>?format=image --output result.png
 ```
 
 #### Alternate (base64 decode):
+This is just an alternate way to get the image if the first method doesn't work
 ```
 curl http://<external>/results/<jobid> | jq -r .image_base64 | base64 -d > result.png
 ```
@@ -143,12 +170,15 @@ curl http://<external>/results/<jobid> | jq -r .image_base64 | base64 -d > resul
 
 ## Public Access via Ingress
 
-If deployed via Kubernetes Ingress:
+Once the application is deployed to the Kubernetes cluster, it becomes accessible at:
 ```
-http://jasonlee.coe332.tacc.cloud
+http://jasonlee.coe332.tacc.cloud/data
 ```
+The following routes are accessible via a browser or curl:
 
 ### Browser endpoints:
+curl http://jasonlee.coe332.tacc.cloud/...
+- `/help`
 - `/sightings`
 - `/sightings/<id>`
 - `/jobs`
@@ -156,15 +186,17 @@ http://jasonlee.coe332.tacc.cloud
 - `/results/<id>`
 - `/results/<id>?format=image`
 
-### Example curl via public domain:
+### Example curl Commands
 ```
 curl -X POST http://jasonlee.coe332.tacc.cloud/data
 curl -X POST http://jasonlee.coe332.tacc.cloud/jobs -H "Content-Type: application/json" -d '{"start_date":"2000-01-01", "end_date":"2005-12-31"}'
+
+# Above is our key curl command for the project. This allows the user to generate a plot that depicts the frequency of UFO sightings in every state over a range of time.
+
 curl -X DELETE http://jasonlee.coe332.tacc.cloud/data
 ```
 
 ---
-
 ## Kubernetes Deployment Instructions
 
 ### Apply Deployment Files
