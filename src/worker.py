@@ -10,6 +10,7 @@ import io
 import sys
 from datetime import datetime
 
+# Redis connection
 redis_ip = os.environ.get('REDIS_HOST', 'redis-prod')
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
@@ -17,13 +18,12 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
-
 logger = logging.getLogger(__name__)
 
-rd = redis.Redis(host=redis_ip, port=6379, db=0)  # Raw UFO data
-jdb = redis.Redis(host=redis_ip, port=6379, db=2)  # Job metadata
-rdb = redis.Redis(host=redis_ip, port=6379, db=3)  # Job results
-q = HotQueue('queue', host=redis_ip, port=6379, db=1)  # Job queue
+rd = redis.Redis(host=redis_ip, port=6379, db=0)
+jdb = redis.Redis(host=redis_ip, port=6379, db=2)
+rdb = redis.Redis(host=redis_ip, port=6379, db=3)
+q = HotQueue('queue', host=redis_ip, port=6379, db=1)
 
 def do_work(jid: str) -> None:
     job_data = jdb.get(jid)
@@ -40,7 +40,7 @@ def do_work(jid: str) -> None:
         start_date = datetime.strptime(job['start_date'], '%Y-%m-%d')
         end_date = datetime.strptime(job['end_date'], '%Y-%m-%d')
 
-        # Retrieve and filter data
+        # Collect sightings
         all_data = []
         for key in rd.scan_iter():
             raw = rd.get(key)
@@ -57,12 +57,10 @@ def do_work(jid: str) -> None:
             except Exception:
                 continue
 
-        # Count by state
         state_counts = pd.Series(all_data).value_counts().sort_values(ascending=False)
 
-        # Check for empty plot
         if state_counts.empty:
-            logger.warning(f"No sightings found for job {jid} — skipping plot.")
+            logger.warning(f"No sightings found for job {jid}")
             result = {
                 "job_id": jid,
                 "title": f"No UFO sightings found from {job['start_date']} to {job['end_date']}",
@@ -73,12 +71,17 @@ def do_work(jid: str) -> None:
             jdb.set(jid, json.dumps(job))
             return
 
+        plt.figure(figsize=(12, 6))
+        state_counts.plot(kind='bar')
+        plt.title(f"UFO Sightings from {job['start_date']} to {job['end_date']}")
+        plt.xlabel("State")
+        plt.ylabel("Number of Sightings")
+        plt.tight_layout()
 
-        # Save to buffer
-        img_buffer = io.BytesIO()
-        plt.savefig(img_buffer, format='png')
-        img_buffer.seek(0)
-        img_base64 = base64.b64encode(img_buffer.read()).decode('utf-8')
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png')
+        buffer.seek(0)
+        img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
         plt.close()
 
         result = {
@@ -88,9 +91,9 @@ def do_work(jid: str) -> None:
         }
 
         rdb.set(jid, json.dumps(result))
-        logger.info(f"Job {jid} complete with {len(state_counts)} states plotted")
         job['status'] = 'complete'
         jdb.set(jid, json.dumps(job))
+        logger.info(f"Job {jid} completed successfully")
 
     except Exception as e:
         job['status'] = 'failed'
