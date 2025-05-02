@@ -6,8 +6,9 @@ import os
 
 redis_ip = os.environ.get('REDIS_HOST', 'redis-prod')
 rd = redis.Redis(host=redis_ip, port=6379, db=0)
-q = HotQueue("queue", host=redis_ip, port=6379, db=1)
-jdb = redis.Redis(host=redis_ip, port=6379, db=2)
+q = HotQueue("queue", host=os.environ.get('REDIS_HOST', 'redis-prod'), port=6379, db=1)
+jdb = redis.Redis(host=os.environ.get('REDIS_HOST', 'redis-prod'), port=6379, db=2)
+
 
 def _generate_jid():
     return str(uuid.uuid4())
