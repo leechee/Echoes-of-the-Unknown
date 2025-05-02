@@ -7,19 +7,24 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import base64
 import io
+import sys
 from datetime import datetime
 
 redis_ip = os.environ.get('REDIS_HOST', 'redis-prod')
 log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(level=log_level)
+logging.basicConfig(
+    level=log_level,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
 logger = logging.getLogger(__name__)
 
-rd = redis.Redis(host=redis_ip, port=6379, db=0)
-jdb = redis.Redis(host=redis_ip, port=6379, db=2)
-rdb = redis.Redis(host=redis_ip, port=6379, db=3)
-q = HotQueue('queue', host=redis_ip, port=6379, db=1)
+rd = redis.Redis(host=redis_ip, port=6379, db=0)  # Raw UFO data
+jdb = redis.Redis(host=redis_ip, port=6379, db=2)  # Job metadata
+rdb = redis.Redis(host=redis_ip, port=6379, db=3)  # Job results
+q = HotQueue('queue', host=redis_ip, port=6379, db=1)  # Job queue
 
-@q.worker
 def do_work(jid: str) -> None:
     job_data = jdb.get(jid)
     if not job_data:
@@ -55,13 +60,19 @@ def do_work(jid: str) -> None:
         # Count by state
         state_counts = pd.Series(all_data).value_counts().sort_values(ascending=False)
 
-        # Plot
-        plt.figure(figsize=(12, 6))
-        state_counts.plot(kind='bar')
-        plt.title(f"UFO Sightings from {job['start_date']} to {job['end_date']}")
-        plt.xlabel("State")
-        plt.ylabel("Number of Sightings")
-        plt.tight_layout()
+        # Check for empty plot
+        if state_counts.empty:
+            logger.warning(f"No sightings found for job {jid} — skipping plot.")
+            result = {
+                "job_id": jid,
+                "title": f"No UFO sightings found from {job['start_date']} to {job['end_date']}",
+                "image_base64": ""
+            }
+            rdb.set(jid, json.dumps(result))
+            job['status'] = 'complete'
+            jdb.set(jid, json.dumps(job))
+            return
+
 
         # Save to buffer
         img_buffer = io.BytesIO()
@@ -87,4 +98,5 @@ def do_work(jid: str) -> None:
         logger.exception(f"Error processing job {jid}: {str(e)}")
 
 if __name__ == '__main__':
-    do_work()
+    for jid in q.consume(block=True):
+        do_work(jid)
