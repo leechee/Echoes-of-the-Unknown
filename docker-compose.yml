@@ -9,21 +9,26 @@ services:
       - redis_data:/data
 
   flask-app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.flask
     ports:
       - "5000:5000"
     environment:
       - REDIS_HOST=redis-db
     depends_on:
       - redis-db
+    command: python api.py
 
   worker:
-    build: .
-    command: python src/worker.py
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
     environment:
       - REDIS_HOST=redis-db
     depends_on:
       - redis-db
+    command: python worker.py
 
 volumes:
   redis_data:
