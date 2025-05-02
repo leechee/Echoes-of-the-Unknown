@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ .
 COPY data/ data/
 
-CMD ["python", "worker.py"]
+CMD ["python", "api.py"]
