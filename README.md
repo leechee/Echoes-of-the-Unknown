@@ -1,6 +1,8 @@
 # Echoes of the Unknown
 
-This project explores reported UFO sightings using a publicly available dataset. It was developed as part of the final project for COE 332: Software Engineering and Design.
+**Echoes of the Unknown** is an engineering-focused software application that processes and analyzes real-world data from reported UFO sightings. The goal of this project is to build a production-ready, interactive REST API that allows users to ingest, explore, and analyze a large public dataset of UFO sightings. The application supports both raw data interaction and asynchronous job submission to generate visual plots of sightings over time and geography.
+
+By using a microservices-style architecture with clearly defined containers (for the API, database, and worker), this platform demonstrates how modern DevOps patterns can be applied to solve engineering data challenges. It also emphasizes good software practices such as modularity, containerization, logging, automated testing, and Kubernetes-based deployment.
 
 ## Team Members
 - Jason Lee (jl78928)  
@@ -215,31 +217,16 @@ kubectl logs <flask-pod-name>
 kubectl logs <worker-pod-name>
 ```
 
-### Port Forward (Local Access)
-```
-kubectl port-forward svc/app-prod-service-flask 5000:5000
-```
-Then visit: `http://localhost:5000/help`
-
-### Check Services
-```
-kubectl get svc
-```
-
-### Get Ingress
-```
-kubectl get ingress
-```
-You’ll see the public domain like `jasonlee.coe332.tacc.cloud`.
-
----
-
 ## Redis Persistence: Backup and Restore
 
 ### Backup Redis
 ```
 docker cp <redis-container>:/data/dump.rdb ./redis-backup.rdb
 kubectl cp <redis-pod>:/data/dump.rdb ./redis-backup.rdb
+```
+You can get redis container ID by running 
+```
+docker ps
 ```
 
 ### Restore Redis
@@ -257,7 +244,7 @@ docker cp ./redis-backup.rdb <redis-container>:/data/dump.rdb
 ### Run with Docker:
 ```
 docker-compose up -d
-pytest test/
+REDIS_HOST=localhost pytest test/
 ```
 
 ### Run in Kubernetes:
