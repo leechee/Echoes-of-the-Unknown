@@ -1,4 +1,3 @@
-### app-prod-deployment-worker.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,8 +14,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: leechee1/worker:latest       
-          imagePullPolicy: Always
+          image: leechee1/worker:latest
           env:
             - name: REDIS_HOST
               value: "redis-prod"
