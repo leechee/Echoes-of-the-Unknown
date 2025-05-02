@@ -4,3 +4,4 @@ redis
 hotqueue
 pandas
 matplotlib
+pytest
